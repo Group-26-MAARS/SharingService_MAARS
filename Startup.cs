@@ -34,6 +34,12 @@ namespace SharingService
             services.AddSingleton<IAnchorKeyCache>(new CosmosDbCache(this.Configuration.GetValue<string>("StorageConnectionString")));
 #endif
 
+#if INMEMORY_DEMO
+            services.AddSingleton<IRouteCache>(new MemoryRouteCache());
+#else
+            services.AddSingleton<IRouteKeyCache>(new CosmosRouteCache(this.Configuration.GetValue<string>("StorageConnectionString")));
+#endif
+
             // Add an http client
             services.AddHttpClient<SpatialAnchorsTokenService>();
 

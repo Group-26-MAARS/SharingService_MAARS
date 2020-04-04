@@ -7,7 +7,7 @@ using System.Collections.Generic;
 namespace SharingService.Data
 {
     /// <summary>
-    /// An interface representing an anchor key cache.
+    /// An interface representing an route key cache.
     /// </summary>
     public interface IAnchorKeyCache
     {
