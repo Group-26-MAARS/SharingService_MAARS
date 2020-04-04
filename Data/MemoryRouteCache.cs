@@ -45,9 +45,9 @@ namespace SharingService.Data
         /// <returns>The route key.</returns>
         public Task<string> GetRouteKeyAsync(long routeId)
         {
-            if (this.memoryCache.TryGetValue(routeId, out string routeKey))
+            if (this.memoryCache.TryGetValue(routeId, out string anchorIdentifiers))
             {
-                return Task.FromResult(routeKey);
+                return Task.FromResult(anchorIdentifiers);
             }
 
             return Task.FromException<string>(new KeyNotFoundException($"The {nameof(routeId)} {routeId} could not be found."));
@@ -69,9 +69,9 @@ namespace SharingService.Data
         /// <returns>The route key.</returns>
         public Task<string> GetLastRouteKeyAsync()
         {
-            if (this.routeNumberIndex >= 0 && this.memoryCache.TryGetValue(this.routeNumberIndex, out string routeKey))
+            if (this.routeNumberIndex >= 0 && this.memoryCache.TryGetValue(this.routeNumberIndex, out string anchorIdentifiers))
             {
-                return Task.FromResult(routeKey);
+                return Task.FromResult(anchorIdentifiers);
             }
 
             return Task.FromResult<string>(null);
@@ -82,7 +82,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="routeKey">The route key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the route identifier.</returns>
-        public Task<long> SetRouteKeyAsync(string routeKey)
+        public Task<long> SetRouteKeyAsync(string routeName, string anchorIdentifiers)
         {
             if (this.routeNumberIndex == long.MaxValue)
             {
@@ -91,7 +91,7 @@ namespace SharingService.Data
             }
 
             long newRouteNumberIndex = ++this.routeNumberIndex;
-            this.memoryCache.Set(newRouteNumberIndex, routeKey, entryCacheOptions);
+            this.memoryCache.Set(newRouteNumberIndex, anchorIdentifiers, entryCacheOptions);
 
             return Task.FromResult(newRouteNumberIndex);
         }

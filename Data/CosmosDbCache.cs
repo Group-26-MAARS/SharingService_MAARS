@@ -12,24 +12,35 @@ namespace SharingService.Data
     public class RouteCacheEntity : TableEntity
     {
         public RouteCacheEntity() { }
-        public RouteCacheEntity(long routeId, int partitionSize)
+        public RouteCacheEntity(long routeId, int partitionSize, string routeName)
         {
             this.PartitionKey = (routeId / partitionSize).ToString();
+            this.RouteName = routeName;
             this.RowKey = routeId.ToString();
         }
-        public string RouteKey { get; set; }
+        public string RouteName { get; set; }
+
+        public string AnchorIdentifiers { get; set; }
 
     }
     public class AnchorCacheEntity : TableEntity
     {
         public AnchorCacheEntity() { }
 
-        public AnchorCacheEntity(long anchorId, int partitionSize)
+        public AnchorCacheEntity(long anchorId, int partitionSize, string anchorName, string location, string expiration, string description)
         {
             this.PartitionKey = (anchorId / partitionSize).ToString();
+            this.AnchorName = anchorName;
+            this.Location = location;
+            this.Expiration = expiration;
+            this.Description = description;
+
             this.RowKey = anchorId.ToString();
         }
-
+        public string AnchorName { get; set; }
+        public string Location { get; set; }
+        public string Expiration { get; set; }
+        public string Description { get; set; }
         public string AnchorKey { get; set; }
     }
 
@@ -185,7 +196,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorKey">The anchor key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the anchor identifier.</returns>
-        public async Task<long> SetAnchorKeyAsync(string anchorKey)
+        public async Task<long> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description)
         {
             await this.InitializeAsync();
 
@@ -204,9 +215,13 @@ namespace SharingService.Data
 
             long newAnchorNumberIndex = ++lastAnchorNumberIndex;
 
-            AnchorCacheEntity anchorEntity = new AnchorCacheEntity(newAnchorNumberIndex, CosmosDbCache.partitionSize)
+            AnchorCacheEntity anchorEntity = new AnchorCacheEntity(newAnchorNumberIndex, CosmosDbCache.partitionSize, anchorName, location, expiration, description)
             {
-                AnchorKey = anchorKey
+                AnchorKey = anchorKey,
+                AnchorName = anchorName,
+                Location = location,
+                Expiration = expiration,
+                Description = description
             };
 
             await this.dbCache.ExecuteAsync(TableOperation.Insert(anchorEntity));
@@ -307,7 +322,7 @@ namespace SharingService.Data
             RouteCacheEntity routeEntity = result.Result as RouteCacheEntity;
             if (routeEntity != null)
             {
-                return routeEntity.RouteKey;
+                return routeEntity.AnchorIdentifiers;
             }
 
             throw new KeyNotFoundException($"The {nameof(routeId)} {routeId} could not be found.");
@@ -358,7 +373,7 @@ namespace SharingService.Data
         /// <returns>The route key.</returns>
         public async Task<string> GetLastRouteKeyAsync()
         {
-            return (await this.GetLastRouteAsync())?.RouteKey;
+            return (await this.GetLastRouteAsync())?.AnchorIdentifiers;
         }
 
         /// <summary>
@@ -366,7 +381,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="routeKey">The route key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the route identifier.</returns>
-        public async Task<long> SetRouteKeyAsync(string routeKey)
+        public async Task<long> SetRouteKeyAsync(string routeName, string AnchorIdentifiers)
         {
             await this.InitializeAsync();
 
@@ -385,9 +400,10 @@ namespace SharingService.Data
 
             long newRouteNumberIndex = ++lastRouteNumberIndex;
 
-            RouteCacheEntity routeEntity = new RouteCacheEntity(newRouteNumberIndex, CosmosRouteCache.partitionSize)
+            RouteCacheEntity routeEntity = new RouteCacheEntity(newRouteNumberIndex, CosmosRouteCache.partitionSize, routeName)
             {
-                RouteKey = routeKey
+                AnchorIdentifiers = AnchorIdentifiers,
+                RouteName = routeName
             };
 
             await this.routesCache.ExecuteAsync(TableOperation.Insert(routeEntity));

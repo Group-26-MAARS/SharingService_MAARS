@@ -73,9 +73,22 @@ namespace SharingService.Controllers
         public async Task<ActionResult<long>> PostAsync()
         {
             string anchorKey;
+            string anchorName;
+            string location;
+            string expiration;
+            string description;
+            string tempStr;
+
             using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
             {
-                anchorKey = await reader.ReadToEndAsync();
+                tempStr = await reader.ReadToEndAsync();
+                //tempStr = "40kjl3kht:MyNewestAnchor:AtUCF:12-20-20:this is the first anchor in the newer form";
+                anchorKey = tempStr.Split(":")[0];
+                anchorName = tempStr.Split(":")[1];
+                location = tempStr.Split(":")[2];
+                expiration = tempStr.Split(":")[3];
+                description = tempStr.Split(":")[4];
+
             }
 
             //anchorKey = "1";
@@ -86,7 +99,7 @@ namespace SharingService.Controllers
             }
 
             // Set the key and return the anchor number
-            return await this.anchorKeyCache.SetAnchorKeyAsync(anchorKey);
+            return await this.anchorKeyCache.SetAnchorKeyAsync(anchorKey, anchorName, location, expiration, description);
         }
     }
 }

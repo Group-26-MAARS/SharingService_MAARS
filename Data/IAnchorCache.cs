@@ -32,7 +32,7 @@ namespace SharingService.Data
         Task<List<AnchorCacheEntity>> GetAllAnchorKeysAsync();
 
         /// <summary>
-        /// Gets the last anchor key asynchronously.
+        /// Gets the last anchor key asynchronously
         /// </summary>
         /// <returns>The last anchor key stored if available; otherwise, null.</returns>
         Task<string> GetLastAnchorKeyAsync();
@@ -42,6 +42,6 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorKey">The anchor key.</param>
         /// <returns>An <see cref="Task{System.Int64}"/> representing the anchor identifier.</returns>
-        Task<long> SetAnchorKeyAsync(string anchorKey);
+        Task<long> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description);
     }
 }

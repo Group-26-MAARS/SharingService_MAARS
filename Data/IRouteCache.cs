@@ -42,6 +42,6 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="routeKey">The route key.</param>
         /// <returns>An <see cref="Task{System.Int64}"/> representing the route identifier.</returns>
-        Task<long> SetRouteKeyAsync(string routeKey);
+        Task<long> SetRouteKeyAsync(string routeName, string anchorIdentifiers);
     }
 }

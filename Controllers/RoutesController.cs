@@ -48,7 +48,7 @@ namespace SharingService.Controllers
             List<RouteCacheEntity> routeCacheEntityList = await this.routeKeyCache.GetAllRouteKeysAsync();
             foreach (RouteCacheEntity cacheEntity in routeCacheEntityList)
             {
-                outputList.Add(cacheEntity.RowKey + " : " + cacheEntity.RouteKey);
+                outputList.Add(cacheEntity.RowKey + " : " + cacheEntity.AnchorIdentifiers);
             }
 
             return outputList;
@@ -58,35 +58,40 @@ namespace SharingService.Controllers
         public async Task<ActionResult<string>> GetAsync()
         {
             // Get the last route
-            string routeKey = await this.routeKeyCache.GetLastRouteKeyAsync();
+            string AnchorIdentifiers = await this.routeKeyCache.GetLastRouteKeyAsync();
 
-            if (routeKey == null)
+            if (AnchorIdentifiers == null)
             {
                 return "";
             }
 
-            return routeKey;
+            return AnchorIdentifiers;
         }
 
         // POST api/routes
         [HttpPost]
         public async Task<ActionResult<long>> PostAsync()
         {
-            string routeKey;
+            string routeName;
+            string anchorIdentifiers;
+            string subStr;
             using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
             {
-                routeKey = await reader.ReadToEndAsync();
+                subStr = await reader.ReadToEndAsync();
+                //subStr = "YetAnotherRouteName:24, 28, 11";
+                routeName = subStr.Split(":")[0];
+                anchorIdentifiers = subStr.Split(":")[1];
             }
 
             //routeKey = "1";
 
-            if (string.IsNullOrWhiteSpace(routeKey))
+            if (string.IsNullOrWhiteSpace(anchorIdentifiers) || string.IsNullOrWhiteSpace(routeName))
             {
                 return this.BadRequest();
             }
 
             // Set the key and return the route number
-            return await this.routeKeyCache.SetRouteKeyAsync(routeKey);
+            return await this.routeKeyCache.SetRouteKeyAsync(routeName, anchorIdentifiers);
         }
     }
 }

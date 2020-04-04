@@ -82,7 +82,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorKey">The anchor key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the anchor identifier.</returns>
-        public Task<long> SetAnchorKeyAsync(string anchorKey)
+        public Task<long> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description)
         {
             if (this.anchorNumberIndex == long.MaxValue)
             {
