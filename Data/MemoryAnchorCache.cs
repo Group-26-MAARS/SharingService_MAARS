@@ -82,7 +82,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorKey">The anchor key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the anchor identifier.</returns>
-        public Task<long> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description)
+        public Task<string> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description)
         {
             if (this.anchorNumberIndex == long.MaxValue)
             {
@@ -93,7 +93,8 @@ namespace SharingService.Data
             long newAnchorNumberIndex = ++this.anchorNumberIndex;
             this.memoryCache.Set(newAnchorNumberIndex, anchorKey, entryCacheOptions);
 
-            return Task.FromResult(newAnchorNumberIndex);
+            //return Task.FromResult(newAnchorNumberIndex);
+            return Task.FromResult(anchorName);
         }
     }
 }

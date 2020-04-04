@@ -43,14 +43,14 @@ namespace SharingService.Data
         /// <param name="routeId">The route identifier.</param>
         /// <exception cref="KeyNotFoundException"></exception>
         /// <returns>The route key.</returns>
-        public Task<string> GetRouteKeyAsync(long routeId)
+        public Task<string> GetRouteKeyAsync(string routeName)
         {
-            if (this.memoryCache.TryGetValue(routeId, out string anchorIdentifiers))
+            if (this.memoryCache.TryGetValue(routeName, out string anchorIdentifiers))
             {
                 return Task.FromResult(anchorIdentifiers);
             }
 
-            return Task.FromException<string>(new KeyNotFoundException($"The {nameof(routeId)} {routeId} could not be found."));
+            return Task.FromException<string>(new KeyNotFoundException($"The {nameof(routeName)} {routeName} could not be found."));
         }
 
 
@@ -82,7 +82,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="routeKey">The route key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the route identifier.</returns>
-        public Task<long> SetRouteKeyAsync(string routeName, string anchorIdentifiers)
+        public Task<string> SetRouteKeyAsync(string routeName, string anchorIdentifiers)
         {
             if (this.routeNumberIndex == long.MaxValue)
             {
@@ -93,7 +93,8 @@ namespace SharingService.Data
             long newRouteNumberIndex = ++this.routeNumberIndex;
             this.memoryCache.Set(newRouteNumberIndex, anchorIdentifiers, entryCacheOptions);
 
-            return Task.FromResult(newRouteNumberIndex);
+            //return Task.FromResult(newRouteNumberIndex);
+            return Task.FromResult(routeName);
         }
     }
 }

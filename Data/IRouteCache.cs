@@ -21,9 +21,9 @@ namespace SharingService.Data
         /// <summary>
         /// Gets the route key asynchronously.
         /// </summary>
-        /// <param name="routeId">The route identifier.</param>
+        /// <param name="routeName">The route identifier.</param>
         /// <returns>The route key.</returns>
-        Task<string> GetRouteKeyAsync(long routeId);
+        Task<string> GetRouteKeyAsync(string routeName);
 
         /// <summary>
         /// Gets all routes in DB
@@ -42,6 +42,6 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="routeKey">The route key.</param>
         /// <returns>An <see cref="Task{System.Int64}"/> representing the route identifier.</returns>
-        Task<long> SetRouteKeyAsync(string routeName, string anchorIdentifiers);
+        Task<string> SetRouteKeyAsync(string routeName, string anchorIdentifiers);
     }
 }

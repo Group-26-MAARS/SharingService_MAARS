@@ -12,14 +12,12 @@ namespace SharingService.Data
     public class RouteCacheEntity : TableEntity
     {
         public RouteCacheEntity() { }
-        public RouteCacheEntity(long routeId, int partitionSize, string routeName)
+        public RouteCacheEntity(int partitionSize, string routeName)
         {
-            this.PartitionKey = (routeId / partitionSize).ToString();
-            this.RouteName = routeName;
-            this.RowKey = routeId.ToString();
+            //this.PartitionKey = (routeId / partitionSize).ToString();
+            this.PartitionKey = "0";
+            this.RowKey = routeName;
         }
-        public string RouteName { get; set; }
-
         public string AnchorIdentifiers { get; set; }
 
     }
@@ -27,17 +25,17 @@ namespace SharingService.Data
     {
         public AnchorCacheEntity() { }
 
-        public AnchorCacheEntity(long anchorId, int partitionSize, string anchorName, string location, string expiration, string description)
+        public AnchorCacheEntity(int partitionSize, string anchorName, string location, string expiration, string description)
         {
-            this.PartitionKey = (anchorId / partitionSize).ToString();
-            this.AnchorName = anchorName;
+            //this.PartitionKey = (anchorId / partitionSize).ToString();
+            this.PartitionKey = "0";
+            //this.AnchorName = anchorName; // commenting out -redundant
             this.Location = location;
             this.Expiration = expiration;
             this.Description = description;
 
-            this.RowKey = anchorId.ToString();
+            this.RowKey = anchorName;
         }
-        public string AnchorName { get; set; }
         public string Location { get; set; }
         public string Expiration { get; set; }
         public string Description { get; set; }
@@ -196,7 +194,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorKey">The anchor key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the anchor identifier.</returns>
-        public async Task<long> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description)
+        public async Task<string> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description)
         {
             await this.InitializeAsync();
 
@@ -206,27 +204,32 @@ namespace SharingService.Data
                 lastAnchorNumberIndex = -1;
             }
 
+            /*
             if(lastAnchorNumberIndex < 0)
             {
                 // Query last row key
                 var rowKey = (await this.GetLastAnchorAsync())?.RowKey;
                 long.TryParse(rowKey, out lastAnchorNumberIndex);
             }
+            */
 
             long newAnchorNumberIndex = ++lastAnchorNumberIndex;
 
-            AnchorCacheEntity anchorEntity = new AnchorCacheEntity(newAnchorNumberIndex, CosmosDbCache.partitionSize, anchorName, location, expiration, description)
+            // Elimiating "RowKey" from Cosmos. Now going to just use the row name (insert or update)
+
+            AnchorCacheEntity anchorEntity = new AnchorCacheEntity(CosmosDbCache.partitionSize, anchorName, location, expiration, description)
             {
                 AnchorKey = anchorKey,
-                AnchorName = anchorName,
+                //AnchorName = anchorName,
                 Location = location,
                 Expiration = expiration,
                 Description = description
             };
 
-            await this.dbCache.ExecuteAsync(TableOperation.Insert(anchorEntity));
+            await this.dbCache.ExecuteAsync(TableOperation.InsertOrReplace(anchorEntity));
 
-            return newAnchorNumberIndex;
+            //return newAnchorNumberIndex;
+            return anchorName;
         }
     }
 
@@ -314,18 +317,20 @@ namespace SharingService.Data
         /// <param name="routeId">The route identifier.</param>
         /// <exception cref="KeyNotFoundException"></exception>
         /// <returns>The route key.</returns>
-        public async Task<string> GetRouteKeyAsync(long routeId)
+        public async Task<string> GetRouteKeyAsync(string routeName)
         {
             await this.InitializeAsync();
 
-            TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>((routeId / CosmosRouteCache.partitionSize).ToString(), routeId.ToString()));
+            //TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>((routeId / CosmosRouteCache.partitionSize).ToString(), routeId.ToString()));
+            TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>("0", routeName));
+
             RouteCacheEntity routeEntity = result.Result as RouteCacheEntity;
             if (routeEntity != null)
             {
                 return routeEntity.AnchorIdentifiers;
             }
 
-            throw new KeyNotFoundException($"The {nameof(routeId)} {routeId} could not be found.");
+            throw new KeyNotFoundException($"The {nameof(routeName)} {routeName} could not be found.");
         }
 
         /// <summary>
@@ -381,10 +386,10 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="routeKey">The route key.</param>
         /// <returns>An <see cref="Task{System.Int64}" /> representing the route identifier.</returns>
-        public async Task<long> SetRouteKeyAsync(string routeName, string AnchorIdentifiers)
+        public async Task<string> SetRouteKeyAsync(string routeName, string AnchorIdentifiers)
         {
             await this.InitializeAsync();
-
+            /*
             if (lastRouteNumberIndex == long.MaxValue)
             {
                 // Reset the route number index.
@@ -397,18 +402,18 @@ namespace SharingService.Data
                 var rowKey = (await this.GetLastRouteAsync())?.RowKey;
                 long.TryParse(rowKey, out lastRouteNumberIndex);
             }
+            */
 
-            long newRouteNumberIndex = ++lastRouteNumberIndex;
+            //long newRouteNumberIndex = ++lastRouteNumberIndex;
 
-            RouteCacheEntity routeEntity = new RouteCacheEntity(newRouteNumberIndex, CosmosRouteCache.partitionSize, routeName)
+            RouteCacheEntity routeEntity = new RouteCacheEntity(CosmosRouteCache.partitionSize, routeName)
             {
                 AnchorIdentifiers = AnchorIdentifiers,
-                RouteName = routeName
             };
 
-            await this.routesCache.ExecuteAsync(TableOperation.Insert(routeEntity));
+            await this.routesCache.ExecuteAsync(TableOperation.InsertOrReplace(routeEntity));
 
-            return newRouteNumberIndex;
+            return routeName;
         }
     }
 }

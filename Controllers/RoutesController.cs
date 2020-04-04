@@ -25,14 +25,14 @@ namespace SharingService.Controllers
         }
 
         // GET api/routes/5
-        [HttpGet("{routeNumber}")]
-        public async Task<ActionResult<string>> GetAsync(long routeNumber)
+        [HttpGet("{routeName}")]
+        public async Task<ActionResult<string>> GetAsync(string routeName)
         {
             Console.WriteLine("Get Request in GetAsync()\n");
             // Get the key if present
             try
             {
-                return await this.routeKeyCache.GetRouteKeyAsync(routeNumber);
+                return await this.routeKeyCache.GetRouteKeyAsync(routeName);
             }
             catch(KeyNotFoundException)
             {
@@ -70,7 +70,7 @@ namespace SharingService.Controllers
 
         // POST api/routes
         [HttpPost]
-        public async Task<ActionResult<long>> PostAsync()
+        public async Task<ActionResult<string>> PostAsync()
         {
             string routeName;
             string anchorIdentifiers;
@@ -78,7 +78,7 @@ namespace SharingService.Controllers
             using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
             {
                 subStr = await reader.ReadToEndAsync();
-                //subStr = "YetAnotherRouteName:24, 28, 11";
+                //subStr = "YetAnotherRouteName:24, 28, 33";
                 routeName = subStr.Split(":")[0];
                 anchorIdentifiers = subStr.Split(":")[1];
             }

@@ -48,7 +48,7 @@ namespace SharingService.Controllers
             List<AnchorCacheEntity> anchorCacheEntityList = await this.anchorKeyCache.GetAllAnchorKeysAsync();
             foreach (AnchorCacheEntity cacheEntity in anchorCacheEntityList)
             {
-                outputList.Add(cacheEntity.RowKey + " : " + cacheEntity.AnchorKey);
+                outputList.Add(cacheEntity.RowKey + " : " + cacheEntity.AnchorKey + " : " + cacheEntity.Location + " : " + cacheEntity.Expiration + " : " + cacheEntity.Description);
             }
 
             return outputList;
@@ -70,7 +70,7 @@ namespace SharingService.Controllers
 
         // POST api/anchors
         [HttpPost]
-        public async Task<ActionResult<long>> PostAsync()
+        public async Task<ActionResult<string>> PostAsync()
         {
             string anchorKey;
             string anchorName;
@@ -82,7 +82,7 @@ namespace SharingService.Controllers
             using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
             {
                 tempStr = await reader.ReadToEndAsync();
-                //tempStr = "40kjl3kht:MyNewestAnchor:AtUCF:12-20-20:this is the first anchor in the newer form";
+                //tempStr = "40kjl3kht:test0:AtUCF:12-20-20:this is the first anchor in the newerer form";
                 anchorKey = tempStr.Split(":")[0];
                 anchorName = tempStr.Split(":")[1];
                 location = tempStr.Split(":")[2];

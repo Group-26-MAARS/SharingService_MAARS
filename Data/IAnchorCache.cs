@@ -42,6 +42,6 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorKey">The anchor key.</param>
         /// <returns>An <see cref="Task{System.Int64}"/> representing the anchor identifier.</returns>
-        Task<long> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description);
+        Task<string> SetAnchorKeyAsync(string anchorKey, string anchorName, string location, string expiration, string description);
     }
 }
