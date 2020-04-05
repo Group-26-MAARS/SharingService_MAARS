@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SharingService.Controllers;
 using SharingService.Data;
 using Swashbuckle.AspNetCore.Swagger;
 
@@ -32,6 +33,8 @@ namespace SharingService
             services.AddSingleton<IAnchorKeyCache>(new MemoryAnchorCache());
 #else
             services.AddSingleton<IAnchorKeyCache>(new CosmosDbCache(this.Configuration.GetValue<string>("StorageConnectionString")));
+            services.AddTransient<RoutesController>();
+
 #endif
 
 #if INMEMORY_DEMO

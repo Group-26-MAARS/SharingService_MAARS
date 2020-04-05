@@ -23,7 +23,7 @@ namespace SharingService.Data
         /// </summary>
         /// <param name="anchorId">The anchor identifier.</param>
         /// <returns>The anchor key.</returns>
-        Task<string> GetAnchorKeyAsync(long anchorId);
+        Task<string> GetAnchorKeyAsync(string anchorName);
 
         /// <summary>
         /// Gets all anchors in DB

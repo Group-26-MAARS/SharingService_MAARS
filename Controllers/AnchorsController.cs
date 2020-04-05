@@ -14,25 +14,29 @@ namespace SharingService.Controllers
     public class AnchorsController : ControllerBase
     {
         private readonly IAnchorKeyCache anchorKeyCache;
+        private readonly IRouteKeyCache routeKeyCache;
+        private readonly RoutesController _routesController;
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AnchorsController"/> class.
         /// </summary>
         /// <param name="anchorKeyCache">The anchor key cache.</param>
-        public AnchorsController(IAnchorKeyCache anchorKeyCache)
+        public AnchorsController(IAnchorKeyCache anchorKeyCache, RoutesController routesController)
         {
             this.anchorKeyCache = anchorKeyCache;
+            this._routesController = routesController;
         }
 
         // GET api/anchors/5
-        [HttpGet("{anchorNumber}")]
-        public async Task<ActionResult<string>> GetAsync(long anchorNumber)
+        [HttpGet("{anchorName}")]
+        public async Task<ActionResult<string>> GetAsync(string anchorName)
         {
             Console.WriteLine("Get Request in GetAsync()\n");
             // Get the key if present
             try
             {
-                return await this.anchorKeyCache.GetAnchorKeyAsync(anchorNumber);
+                return await this.anchorKeyCache.GetAnchorKeyAsync(anchorName);
             }
             catch(KeyNotFoundException)
             {
@@ -49,6 +53,25 @@ namespace SharingService.Controllers
             foreach (AnchorCacheEntity cacheEntity in anchorCacheEntityList)
             {
                 outputList.Add(cacheEntity.RowKey + " : " + cacheEntity.AnchorKey + " : " + cacheEntity.Location + " : " + cacheEntity.Expiration + " : " + cacheEntity.Description);
+            }
+
+            return outputList;
+        }
+
+        // GET api/anchors/allForRoute/myRouteName
+        [HttpGet("allForRoute/{routeName}")]
+
+        public async Task<ActionResult<List<string>>> GetAllForRouteAsync(string routeName)
+        {
+            List<string> outputList = new List<string>();
+
+        // Get the all anchor caches for the anchors that are found in the given route
+            string anchorIdents = await _routesController.routeKeyCache.GetRouteKeyAsync(routeName);
+            string[] anchorNames = anchorIdents.Replace(" ", "").Split(','); // what should this be split on?
+            foreach (string currStr in anchorNames)
+            {
+                string allAnchorsData = await this.anchorKeyCache.GetAnchorKeyAsync(currStr);
+                outputList.Add(allAnchorsData);
             }
 
             return outputList;
@@ -83,6 +106,7 @@ namespace SharingService.Controllers
             {
                 tempStr = await reader.ReadToEndAsync();
                 //tempStr = "40kjl3kht:test0:AtUCF:12-20-20:this is the first anchor in the newerer form";
+                //tempStr = "6647aab9-119f-47a0-ad9c-e616c9db83ce:2::";
                 anchorKey = tempStr.Split(":")[0];
                 anchorName = tempStr.Split(":")[1];
                 location = tempStr.Split(":")[2];

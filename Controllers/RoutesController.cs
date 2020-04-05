@@ -13,8 +13,8 @@ namespace SharingService.Controllers
     [ApiController]
     public class RoutesController : ControllerBase
     {
-        private readonly IRouteKeyCache routeKeyCache;
-
+        //private readonly IRouteKeyCache routeKeyCache;
+        public IRouteKeyCache routeKeyCache;
         /// <summary>
         /// Initializes a new instance of the RoutesController class.
         /// </summary>

@@ -43,14 +43,14 @@ namespace SharingService.Data
         /// <param name="anchorId">The anchor identifier.</param>
         /// <exception cref="KeyNotFoundException"></exception>
         /// <returns>The anchor key.</returns>
-        public Task<string> GetAnchorKeyAsync(long anchorId)
+        public Task<string> GetAnchorKeyAsync(string anchorName)
         {
-            if (this.memoryCache.TryGetValue(anchorId, out string anchorKey))
+            if (this.memoryCache.TryGetValue(anchorName, out string anchorKey))
             {
                 return Task.FromResult(anchorKey);
             }
 
-            return Task.FromException<string>(new KeyNotFoundException($"The {nameof(anchorId)} {anchorId} could not be found."));
+            return Task.FromException<string>(new KeyNotFoundException($"The {nameof(anchorName)} {anchorName} could not be found."));
         }
 
 
