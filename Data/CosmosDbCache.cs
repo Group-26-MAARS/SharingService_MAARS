@@ -334,6 +334,31 @@ namespace SharingService.Data
         }
 
         /// <summary>
+        /// Deletes the route key asynchronously.
+        /// </summary>
+        /// <param name="routeId">The route identifier.</param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <returns>The route key.</returns>
+        public async Task<string> DeleteRouteKeyAsync(string routeName)
+        {
+            await this.InitializeAsync();
+            RouteCacheEntity routeCacheEntity = new RouteCacheEntity();
+            routeCacheEntity.RowKey = routeName;
+            routeCacheEntity.PartitionKey = "0";
+            routeCacheEntity.ETag = "*";
+            //TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>((routeId / CosmosRouteCache.partitionSize).ToString(), routeId.ToString()));
+            TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Delete(routeCacheEntity));
+
+            RouteCacheEntity routeEntity = result.Result as RouteCacheEntity;
+            if (routeEntity != null)
+            {
+                return routeName;
+            }
+
+            throw new KeyNotFoundException($"The {nameof(routeName)} {routeName} could not be found.");
+        }
+
+        /// <summary>
         /// Gets the last route asynchronously.
         /// </summary>
         /// <returns>The route.</returns>

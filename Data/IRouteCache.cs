@@ -26,6 +26,13 @@ namespace SharingService.Data
         Task<string> GetRouteKeyAsync(string routeName);
 
         /// <summary>
+        /// Deletes the route key asynchronously.
+        /// </summary>
+        /// <param name="routeName">The route identifier.</param>
+        /// <returns>The route key.</returns>
+        Task<string> DeleteRouteKeyAsync(string routeName);
+
+        /// <summary>
         /// Gets all routes in DB
         /// </summary>
         /// <returns>The route.</returns>

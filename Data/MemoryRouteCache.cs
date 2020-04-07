@@ -37,6 +37,24 @@ namespace SharingService.Data
             return Task.FromResult(this.memoryCache.TryGetValue(routeId, out _));
         }
 
+
+        /// <summary>
+        /// Delete the route key asynchronously.
+        /// </summary>
+        /// <param name="routeId">The route identifier.</param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <returns>The route key.</returns>
+        public Task<string> DeleteRouteKeyAsync(string routeName)
+        {
+            if (this.memoryCache.TryGetValue(routeName, out string anchorIdentifiers))
+            {
+                return Task.FromResult(anchorIdentifiers);
+            }
+
+            return Task.FromException<string>(new KeyNotFoundException($"The {nameof(routeName)} {routeName} could not be found."));
+        }
+
+
         /// <summary>
         /// Gets the route key asynchronously.
         /// </summary>

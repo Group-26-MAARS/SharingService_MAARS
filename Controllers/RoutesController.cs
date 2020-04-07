@@ -67,6 +67,23 @@ namespace SharingService.Controllers
 
             return AnchorIdentifiers;
         }
+        
+        // GET api/routes/remove/routeName4
+        [HttpGet("remove/{routeName}")]
+        public async Task<ActionResult<string>> DeleteAsync(string routeName)
+        {
+            Console.WriteLine("Get Request in GetAsync()\n");
+            // Get the key if present
+            try
+            {
+                return await this.routeKeyCache.DeleteRouteKeyAsync(routeName);
+            }
+            catch (KeyNotFoundException)
+            {
+                return this.NotFound();
+            }
+        }
+        
 
         // POST api/routes
         [HttpPost]
