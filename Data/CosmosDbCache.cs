@@ -21,6 +21,19 @@ namespace SharingService.Data
         public string AnchorIdentifiers { get; set; }
 
     }
+
+    public class ExperienceCacheEntity : TableEntity
+    {
+        public ExperienceCacheEntity() { }
+        public ExperienceCacheEntity(int partitionSize, string experienceName)
+        {
+            //this.PartitionKey = (routeId / partitionSize).ToString();
+            this.PartitionKey = "0";
+            this.RowKey = experienceName;
+        }
+        public string ExperienceValues { get; set; }
+
+    }
     public class AnchorCacheEntity : TableEntity
     {
         public AnchorCacheEntity() { }
@@ -608,6 +621,196 @@ namespace SharingService.Data
             await this.routesCache.ExecuteAsync(TableOperation.InsertOrReplace(routeEntity));
 
             return routeName;
+        }
+    }
+
+    internal class CosmosExperienceCache : IExperienceKeyCache
+    {
+        /// <summary>
+        /// Super basic partitioning scheme
+        /// </summary>
+        private const int partitionSize = 500;
+
+        /// <summary>
+        /// The database cache for experiences.
+        /// </summary>
+        private readonly CloudTable experiencesCache;
+
+        // To ensure our asynchronous initialization code is only ever invoked once, we employ two manualResetEvents
+        ManualResetEventSlim initialized = new ManualResetEventSlim();
+        ManualResetEventSlim initializing = new ManualResetEventSlim();
+
+        private async Task InitializeAsync()
+        {
+            if (!this.initialized.Wait(0))
+            {
+                if (!this.initializing.Wait(0))
+                {
+                    this.initializing.Set();
+                    await this.experiencesCache.CreateIfNotExistsAsync();
+
+                    this.initialized.Set();
+                }
+                this.initialized.Wait();
+            }
+        }
+
+
+
+        public CosmosExperienceCache(string storageConnectionString)
+        {
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
+            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            this.experiencesCache = tableClient.GetTableReference("ExperiencesCache");
+        }
+
+        /// <summary>
+        /// Determines whether the cache contains the specified experience identifier.
+        /// </summary>
+        /// <param name="experienceId">The experience identifier.</param>
+        /// <returns>A <see cref="Task{System.Boolean}" /> containing true if the identifier is found; otherwise false.</returns>
+        public async Task<bool> ContainsAsync(long experienceId)
+        {
+            await this.InitializeAsync();
+
+            TableResult result = await this.experiencesCache.ExecuteAsync(TableOperation.Retrieve<ExperienceCacheEntity>((experienceId / CosmosExperienceCache.partitionSize).ToString(), experienceId.ToString()));
+            ExperienceCacheEntity experienceEntity = result.Result as ExperienceCacheEntity;
+            return experienceEntity != null;
+        }
+
+        // For CosmosDbCache.cs
+        /// <summary>
+        /// Gets all experiences in DB
+        /// </summary>
+        /// <returns>The experience.</returns>
+        public async Task<List<ExperienceCacheEntity>> GetAllExperiencesAsync()
+        {
+            await this.InitializeAsync();
+
+            List<ExperienceCacheEntity> results = new List<ExperienceCacheEntity>();
+            TableQuery<ExperienceCacheEntity> tableQuery = new TableQuery<ExperienceCacheEntity>();
+            TableQuerySegment<ExperienceCacheEntity> previousSegment = null;
+            while (previousSegment == null || previousSegment.ContinuationToken != null)
+            {
+                TableQuerySegment<ExperienceCacheEntity> currentSegment = await this.experiencesCache.ExecuteQuerySegmentedAsync<ExperienceCacheEntity>(tableQuery, previousSegment?.ContinuationToken);
+                previousSegment = currentSegment;
+                results.AddRange(previousSegment.Results);
+            }
+
+            return results.ToList();
+        }
+        /// <summary>
+        /// Gets the experience key asynchronously.
+        /// </summary>
+        /// <param name="experienceId">The experience identifier.</param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <returns>The experience key.</returns>
+        public async Task<string> GetExperienceKeyAsync(string experienceName)
+        {
+            await this.InitializeAsync();
+
+            //TableResult result = await this.experiencesCache.ExecuteAsync(TableOperation.Retrieve<ExperienceCacheEntity>((experienceId / CosmosExperienceCache.partitionSize).ToString(), experienceId.ToString()));
+            TableResult result = await this.experiencesCache.ExecuteAsync(TableOperation.Retrieve<ExperienceCacheEntity>("0", experienceName));
+
+            ExperienceCacheEntity experienceEntity = result.Result as ExperienceCacheEntity;
+            if (experienceEntity != null)
+            {
+                return experienceEntity.ExperienceValues;
+            }
+
+            throw new KeyNotFoundException($"The {nameof(experienceName)} {experienceName} could not be found.");
+        }
+
+        /// <summary>
+        /// Deletes the experience key asynchronously.
+        /// </summary>
+        /// <param name="experienceId">The experience identifier.</param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <returns>The experience key.</returns>
+        public async Task<string> DeleteExperienceKeyAsync(string experienceName)
+        {
+            await this.InitializeAsync();
+            ExperienceCacheEntity experienceCacheEntity = new ExperienceCacheEntity();
+            experienceCacheEntity.RowKey = experienceName;
+            experienceCacheEntity.PartitionKey = "0";
+            experienceCacheEntity.ETag = "*";
+            //TableResult result = await this.experiencesCache.ExecuteAsync(TableOperation.Retrieve<ExperienceCacheEntity>((experienceId / CosmosExperienceCache.partitionSize).ToString(), experienceId.ToString()));
+            TableResult result = await this.experiencesCache.ExecuteAsync(TableOperation.Delete(experienceCacheEntity));
+
+            ExperienceCacheEntity experienceEntity = result.Result as ExperienceCacheEntity;
+            if (experienceEntity != null)
+            {
+                return experienceName;
+            }
+
+            throw new KeyNotFoundException($"The {nameof(experienceName)} {experienceName} could not be found.");
+        }
+
+        /// <summary>
+        /// Gets the last experience asynchronously.
+        /// </summary>
+        /// <returns>The experience.</returns>
+        public async Task<ExperienceCacheEntity> GetLastExperienceAsync()
+        {
+            await this.InitializeAsync();
+
+            List<ExperienceCacheEntity> results = new List<ExperienceCacheEntity>();
+            TableQuery<ExperienceCacheEntity> tableQuery = new TableQuery<ExperienceCacheEntity>();
+            TableQuerySegment<ExperienceCacheEntity> previousSegment = null;
+            while (previousSegment == null || previousSegment.ContinuationToken != null)
+            {
+                TableQuerySegment<ExperienceCacheEntity> currentSegment = await this.experiencesCache.ExecuteQuerySegmentedAsync<ExperienceCacheEntity>(tableQuery, previousSegment?.ContinuationToken);
+                previousSegment = currentSegment;
+                results.AddRange(previousSegment.Results);
+            }
+
+            return results.OrderByDescending(x => x.Timestamp).DefaultIfEmpty(null).First();
+        }
+
+        /// <summary>
+        /// Gets all keys asynchronously.
+        /// </summary>
+        /// <returns>The experience key.</returns>
+        /// 
+        public async Task<List<ExperienceCacheEntity>> GetAllExperienceKeysAsync()
+        {
+            List<string> myList = new List<string>();
+            List<ExperienceCacheEntity> experienceCacheList = await this.GetAllExperiencesAsync();
+            /*
+            foreach (ExperiencesCacheEntity experienceCacheEntity in experienceCacheList)
+            {
+                myList.Add(experiencesCacheEntity?.ExperienceKey);
+            }
+            */
+            return experienceCacheList;
+        }
+
+        /// <summary>
+        /// Gets the last experience key asynchronously.
+        /// </summary>
+        /// <returns>The experience key.</returns>
+        public async Task<string> GetLastExperienceKeyAsync()
+        {
+            return (await this.GetLastExperienceAsync())?.ExperienceValues;
+        }
+
+        /// <summary>
+        /// Sets the experience key asynchronously.
+        /// </summary>
+        /// <param name="experienceKey">The experience key.</param>
+        /// <returns>An <see cref="Task{System.Int64}" /> representing the experience identifier.</returns>
+        public async Task<string> SetExperienceKeyAsync(string experienceName, string experienceValues)
+        {
+            await this.InitializeAsync();
+
+            ExperienceCacheEntity experienceEntity = new ExperienceCacheEntity(CosmosExperienceCache.partitionSize, experienceName)
+            {
+                ExperienceValues = experienceValues,
+            };
+
+            await this.experiencesCache.ExecuteAsync(TableOperation.InsertOrReplace(experienceEntity));
+
+            return experienceName;
         }
     }
 }
