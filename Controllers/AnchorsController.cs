@@ -65,7 +65,7 @@ namespace SharingService.Controllers
         {
             List<string> outputList = new List<string>();
 
-        // Get the all anchor caches for the anchors that are found in the given route
+            // Get the all anchor caches for the anchors that are found in the given route
             string anchorIdents = await _routesController.routeKeyCache.GetRouteKeyAsync(routeName);
             string[] anchorNames = anchorIdents.Replace(" ", "").Split(','); // what should this be split on?
             foreach (string currStr in anchorNames)

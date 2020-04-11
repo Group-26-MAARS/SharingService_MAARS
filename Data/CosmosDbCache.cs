@@ -42,6 +42,21 @@ namespace SharingService.Data
         public string AnchorKey { get; set; }
     }
 
+    public class AnimationCacheEntity : TableEntity
+    {
+        public AnimationCacheEntity() { }
+
+        public AnimationCacheEntity(int partitionSize, string animationName)
+        {
+            //this.PartitionKey = (anchorId / partitionSize).ToString();
+            this.PartitionKey = "0";
+            this.RowKey = animationName;
+        }
+        public string AnimationKey { get; set; }
+        public string AnimationJSON { get; set; }
+
+    }
+
 
     internal class CosmosDbCache : IAnchorKeyCache
     {
@@ -233,6 +248,179 @@ namespace SharingService.Data
         }
     }
 
+    internal class CosmosAnimationCache : IAnimationKeyCache
+    {
+        /// <summary>
+        /// Super basic partitioning scheme
+        /// </summary>
+        private const int partitionSize = 500;
+
+        /// <summary>
+        /// The database cache for animations.
+        /// </summary>
+        private readonly CloudTable animationsCache;
+
+        // To ensure our asynchronous initialization code is only ever invoked once, we employ two manualResetEvents
+        ManualResetEventSlim initialized = new ManualResetEventSlim();
+        ManualResetEventSlim initializing = new ManualResetEventSlim();
+
+        private async Task InitializeAsync()
+        {
+            if (!this.initialized.Wait(0))
+            {
+                if (!this.initializing.Wait(0))
+                {
+                    this.initializing.Set();
+                    await this.animationsCache.CreateIfNotExistsAsync();
+
+                    this.initialized.Set();
+                }
+                this.initialized.Wait();
+            }
+        }
+
+
+
+        public CosmosAnimationCache(string storageConnectionString)
+        {
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
+            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            this.animationsCache = tableClient.GetTableReference("AnimationsCache");
+        }
+
+        /// <summary>
+        /// Determines whether the cache contains the specified animation identifier.
+        /// </summary>
+        /// <param name="animationId">The animation identifier.</param>
+        /// <returns>A <see cref="Task{System.Boolean}" /> containing true if the identifier is found; otherwise false.</returns>
+        public async Task<bool> ContainsAsync(long animationId)
+        {
+            await this.InitializeAsync();
+
+            TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>((animationId / CosmosAnimationCache.partitionSize).ToString(), animationId.ToString()));
+            AnimationCacheEntity animationEntity = result.Result as AnimationCacheEntity;
+            return animationEntity != null;
+        }
+
+        // For CosmosDbCache.cs
+        /// <summary>
+        /// Gets all animations in DB
+        /// </summary>
+        /// <returns>The animation.</returns>
+        public async Task<List<AnimationCacheEntity>> GetAllAnimationKeysAsync()
+        {
+            await this.InitializeAsync();
+
+            List<AnimationCacheEntity> results = new List<AnimationCacheEntity>();
+            TableQuery<AnimationCacheEntity> tableQuery = new TableQuery<AnimationCacheEntity>();
+            TableQuerySegment<AnimationCacheEntity> previousSegment = null;
+            while (previousSegment == null || previousSegment.ContinuationToken != null)
+            {
+                TableQuerySegment<AnimationCacheEntity> currentSegment = await this.animationsCache.ExecuteQuerySegmentedAsync<AnimationCacheEntity>(tableQuery, previousSegment?.ContinuationToken);
+                previousSegment = currentSegment;
+                results.AddRange(previousSegment.Results);
+            }
+
+            return results.ToList();
+        }
+        /// <summary>
+        /// Gets the animation key asynchronously.
+        /// </summary>
+        /// <param name="animationId">The animation identifier.</param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <returns>The animation key.</returns>
+        public async Task<string> GetAnimationKeyAsync(string animationName)
+        {
+            await this.InitializeAsync();
+
+            //TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>((animationId / CosmosAnimationCache.partitionSize).ToString(), animationId.ToString()));
+            TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>("0", animationName));
+
+            AnimationCacheEntity animationEntity = result.Result as AnimationCacheEntity;
+            if (animationEntity != null)
+            {
+                return animationEntity.AnimationJSON;
+            }
+
+            throw new KeyNotFoundException($"The {nameof(animationName)} {animationName} could not be found.");
+        }
+
+        /// <summary>
+        /// Deletes the animation key asynchronously.
+        /// </summary>
+        /// <param name="animationId">The animation identifier.</param>
+        /// <exception cref="KeyNotFoundException"></exception>
+        /// <returns>The animation key.</returns>
+        public async Task<string> DeleteAnimationKeyAsync(string animationName)
+        {
+            await this.InitializeAsync();
+            AnimationCacheEntity animationCacheEntity = new AnimationCacheEntity();
+            animationCacheEntity.RowKey = animationName;
+            animationCacheEntity.PartitionKey = "0";
+            animationCacheEntity.ETag = "*";
+            //TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>((animationId / CosmosAnimationCache.partitionSize).ToString(), animationId.ToString()));
+            TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Delete(animationCacheEntity));
+
+            AnimationCacheEntity animationEntity = result.Result as AnimationCacheEntity;
+            if (animationEntity != null)
+            {
+                return animationName;
+            }
+
+            throw new KeyNotFoundException($"The {nameof(animationName)} {animationName} could not be found.");
+        }
+
+        /// <summary>
+        /// Gets the last animation asynchronously.
+        /// </summary>
+        /// <returns>The animation.</returns>
+        public async Task<AnimationCacheEntity> GetLastAnimationAsync()
+        {
+            await this.InitializeAsync();
+
+            List<AnimationCacheEntity> results = new List<AnimationCacheEntity>();
+            TableQuery<AnimationCacheEntity> tableQuery = new TableQuery<AnimationCacheEntity>();
+            TableQuerySegment<AnimationCacheEntity> previousSegment = null;
+            while (previousSegment == null || previousSegment.ContinuationToken != null)
+            {
+                TableQuerySegment<AnimationCacheEntity> currentSegment = await this.animationsCache.ExecuteQuerySegmentedAsync<AnimationCacheEntity>(tableQuery, previousSegment?.ContinuationToken);
+                previousSegment = currentSegment;
+                results.AddRange(previousSegment.Results);
+            }
+
+            return results.OrderByDescending(x => x.Timestamp).DefaultIfEmpty(null).First();
+        }
+
+
+        /// <summary>
+        /// Gets the last animation key asynchronously.
+        /// </summary>
+        /// <returns>The animation key.</returns>
+        public async Task<string> GetLastAnimationKeyAsync()
+        {
+            return (await this.GetLastAnimationAsync())?.AnimationJSON;
+        }
+
+        /// <summary>
+        /// Sets the animation key asynchronously.
+        /// </summary>
+        /// <param name="animationKey">The animation key.</param>
+        /// <returns>An <see cref="Task{System.Int64}" /> representing the animation identifier.</returns>
+        public async Task<string> SetAnimationKeyAsync(string animationName, string animationJSON)
+        {
+            await this.InitializeAsync();
+
+            AnimationCacheEntity animationEntity = new AnimationCacheEntity(CosmosAnimationCache.partitionSize, animationName)
+            {
+                AnimationJSON = animationJSON,
+            };
+
+            await this.animationsCache.ExecuteAsync(TableOperation.InsertOrReplace(animationEntity));
+
+            return animationName;
+        }
+    }
+
     internal class CosmosRouteCache : IRouteKeyCache
     {
         /// <summary>
@@ -244,11 +432,6 @@ namespace SharingService.Data
         /// The database cache for routes.
         /// </summary>
         private readonly CloudTable routesCache;
-
-        /// <summary>
-        /// The route numbering index.
-        /// </summary>
-        private long lastRouteNumberIndex = -1;
 
         // To ensure our asynchronous initialization code is only ever invoked once, we employ two manualResetEvents
         ManualResetEventSlim initialized = new ManualResetEventSlim();
@@ -268,6 +451,8 @@ namespace SharingService.Data
                 this.initialized.Wait();
             }
         }
+
+
 
         public CosmosRouteCache(string storageConnectionString)
         {
