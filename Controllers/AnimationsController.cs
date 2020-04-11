@@ -101,7 +101,7 @@ namespace SharingService.Controllers
         using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
         {
             string tempStr = await reader.ReadToEndAsync();
-            //tempStr = "someAnimationName:someAnimationSerializedJSON";
+            tempStr = "someAnimationName:someAnimationSerializedJSON";
             animationName = tempStr.Split(":")[0];
             animationKey = tempStr.Split(":")[1];
         }

@@ -53,6 +53,9 @@ namespace SharingService
             services.AddSingleton<IExperienceCache>(new MemoryExperienceCache());
 #else
             services.AddSingleton<IExperienceKeyCache>(new CosmosExperienceCache(this.Configuration.GetValue<string>("StorageConnectionString")));
+            services.AddTransient<AnchorsController>();
+            services.AddTransient<RoutesController>();
+
 #endif
 
             // Add an http client
