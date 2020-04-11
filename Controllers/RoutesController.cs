@@ -48,7 +48,7 @@ namespace SharingService.Controllers
             List<RouteCacheEntity> routeCacheEntityList = await this.routeKeyCache.GetAllRouteKeysAsync();
             foreach (RouteCacheEntity cacheEntity in routeCacheEntityList)
             {
-                outputList.Add(cacheEntity.RowKey + " : " + cacheEntity.AnchorIdentifiers);
+                outputList.Add(cacheEntity.RowKey.Substring(2, cacheEntity.RowKey.Split(':')[0].Length - 2) + " : " + cacheEntity.AnchorIdentifiers);
             }
 
             return outputList;

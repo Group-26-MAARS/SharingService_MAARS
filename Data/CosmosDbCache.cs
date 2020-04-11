@@ -334,7 +334,7 @@ namespace SharingService.Data
             await this.InitializeAsync();
 
             //TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>((animationId / CosmosAnimationCache.partitionSize).ToString(), animationId.ToString()));
-            TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>("0", animationName));
+            TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>("0", "A_" + animationName));
 
             AnimationCacheEntity animationEntity = result.Result as AnimationCacheEntity;
             if (animationEntity != null)
@@ -355,7 +355,7 @@ namespace SharingService.Data
         {
             await this.InitializeAsync();
             AnimationCacheEntity animationCacheEntity = new AnimationCacheEntity();
-            animationCacheEntity.RowKey = animationName;
+            animationCacheEntity.RowKey = "A_" + animationName;
             animationCacheEntity.PartitionKey = "0";
             animationCacheEntity.ETag = "*";
             //TableResult result = await this.animationsCache.ExecuteAsync(TableOperation.Retrieve<AnimationCacheEntity>((animationId / CosmosAnimationCache.partitionSize).ToString(), animationId.ToString()));
@@ -410,7 +410,7 @@ namespace SharingService.Data
         {
             await this.InitializeAsync();
 
-            AnimationCacheEntity animationEntity = new AnimationCacheEntity(CosmosAnimationCache.partitionSize, animationName)
+            AnimationCacheEntity animationEntity = new AnimationCacheEntity(CosmosAnimationCache.partitionSize, "A_" + animationName)
             {
                 AnimationJSON = animationJSON,
             };
@@ -507,7 +507,7 @@ namespace SharingService.Data
             await this.InitializeAsync();
 
             //TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>((routeId / CosmosRouteCache.partitionSize).ToString(), routeId.ToString()));
-            TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>("0", routeName));
+            TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>("0", "R_" + routeName));
 
             RouteCacheEntity routeEntity = result.Result as RouteCacheEntity;
             if (routeEntity != null)
@@ -528,7 +528,7 @@ namespace SharingService.Data
         {
             await this.InitializeAsync();
             RouteCacheEntity routeCacheEntity = new RouteCacheEntity();
-            routeCacheEntity.RowKey = routeName;
+            routeCacheEntity.RowKey = "R_" + routeName;
             routeCacheEntity.PartitionKey = "0";
             routeCacheEntity.ETag = "*";
             //TableResult result = await this.routesCache.ExecuteAsync(TableOperation.Retrieve<RouteCacheEntity>((routeId / CosmosRouteCache.partitionSize).ToString(), routeId.ToString()));
@@ -599,24 +599,8 @@ namespace SharingService.Data
         public async Task<string> SetRouteKeyAsync(string routeName, string AnchorIdentifiers)
         {
             await this.InitializeAsync();
-            /*
-            if (lastRouteNumberIndex == long.MaxValue)
-            {
-                // Reset the route number index.
-                lastRouteNumberIndex = -1;
-            }
 
-            if (lastRouteNumberIndex < 0)
-            {
-                // Query last row key
-                var rowKey = (await this.GetLastRouteAsync())?.RowKey;
-                long.TryParse(rowKey, out lastRouteNumberIndex);
-            }
-            */
-
-            //long newRouteNumberIndex = ++lastRouteNumberIndex;
-
-            RouteCacheEntity routeEntity = new RouteCacheEntity(CosmosRouteCache.partitionSize, routeName)
+            RouteCacheEntity routeEntity = new RouteCacheEntity(CosmosRouteCache.partitionSize, "R_" + routeName)
             {
                 AnchorIdentifiers = AnchorIdentifiers,
             };
