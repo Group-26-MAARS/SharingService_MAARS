@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System;
+using Newtonsoft.Json;
 namespace SharingService.Controllers
 {
     [Route("api/animations")]
@@ -97,13 +98,17 @@ namespace SharingService.Controllers
     {
         string animationKey;
         string animationName;
-
         using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
         {
-            string tempStr = await reader.ReadToEndAsync();
+            string tempstr = await reader.ReadToEndAsync();
+            string[] fields = tempstr.Split('&');
+            Animation temp = new Animation();
+            temp.name = fields[0].Split('=')[1];
+            temp.url = fields[1].Split('=')[1];
+            
+            animationName = temp.name;
+            animationKey = JsonConvert.SerializeObject(temp);
             //tempStr = "someAnimationName:someAnimationSerializedJSON";
-            animationName = tempStr.Split(":")[0];
-            animationKey = tempStr.Split(":")[1];
         }
 
         if (string.IsNullOrWhiteSpace(animationKey))
@@ -115,4 +120,9 @@ namespace SharingService.Controllers
         return await this.animationKeyCache.SetAnimationKeyAsync(animationName, animationKey);
     }
 }
+    public class Animation
+    {
+        public string name;
+        public string url;
+    }
 }
