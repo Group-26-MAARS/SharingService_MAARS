@@ -63,11 +63,6 @@ namespace SharingService.Controllers
             // Get the key if present
             try
             {
-                // currExperienceItem will be like the following:
-                //R_ThisRoute, A_MyExperience, R_FinalRoute
-
-                //experienceItemsString = await this.experienceKeyCache.GetExperienceKeyAsync(experienceName);
-                experienceItemsString = "R_ThisRoute, A_someAnimationName, R_FinalRoute";
                 string finalReturnStr = "";
                 for (int i = 0; i <= experienceItemsString.Count(x => x == ','); i++)
                 {
