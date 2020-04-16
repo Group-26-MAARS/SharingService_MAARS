@@ -63,10 +63,8 @@ namespace SharingService.Controllers
             // Get the key if present
             try
             {
-                // currExperienceItem will be like the following:
-                //R_ThisRoute, A_MyExperience, R_FinalRoute
-
                 experienceItemsString = await this.experienceKeyCache.GetExperienceKeyAsync(experienceName);
+                //experienceItemsString = "R_ThisRoute, A_uhhhhh, R_FinalRoute";
                 string finalReturnStr = "";
                 for (int i = 0; i <= experienceItemsString.Count(x => x == ','); i++)
                 {
@@ -117,7 +115,7 @@ namespace SharingService.Controllers
             List<ExperienceCacheEntity> experienceCacheEntityList = await this.experienceKeyCache.GetAllExperienceKeysAsync();
             foreach (ExperienceCacheEntity cacheEntity in experienceCacheEntityList)
             {
-                outputList.Add(cacheEntity.RowKey.Substring(2, cacheEntity.RowKey.Split(':')[0].Length - 2) + " : " + cacheEntity.ExperienceValues);
+                outputList.Add(cacheEntity.RowKey.Substring(0, cacheEntity.RowKey.Split(':')[0].Length) + " : " + cacheEntity.ExperienceValues);
             }
 
             return outputList;
@@ -164,7 +162,7 @@ namespace SharingService.Controllers
             using (StreamReader reader = new StreamReader(this.Request.Body, Encoding.UTF8))
             {
                 subStr = await reader.ReadToEndAsync();
-                subStr = "MyExperienceName:R_ThisRoute, A_MyExperience, R_FinalRoute";
+                //subStr = "MyExperienceName:R_ThisRoute, A_uhhhhh, R_FinalRoute";
                 experienceName = subStr.Split(":")[0];
                 anchorIdentifiers = subStr.Split(":")[1];
             }
